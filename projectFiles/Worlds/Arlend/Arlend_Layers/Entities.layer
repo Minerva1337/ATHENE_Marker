@@ -1,28 +1,56 @@
-GenericEntity ATHENE_Marker1 {
- components {
-  MeshObject "{6668B15E2BEA4EDC}" {
-   Enabled 0
-   Object "{2DC16E7C8417D588}Assets/Structures/Signs/Warnings/Sign_Square_A.xob"
-   BoundingBox AABBBoundingVolume "{6668B15E6167ED75}" {
-    Mins -0.251 -0.251 -0.04
-    Maxs 0.251 0.251 0.053
+$grp GenericEntity {
+ ATHENE_Marker1 {
+  components {
+   MeshObject "{6668B15E2BEA4EDC}" {
+    Enabled 0
+    Object "{2DC16E7C8417D588}Assets/Structures/Signs/Warnings/Sign_Square_A.xob"
+    BoundingBox AABBBoundingVolume "{6668B15E6167ED75}" {
+     Mins -0.251 -0.251 -0.04
+     Maxs 0.251 0.251 0.053
+    }
+   }
+   SCR_EditableDecalComponent "{6668B15E4057A29A}" {
+    Enabled 0
+    m_UIInfo SCR_ColorUIInfo "{6668B15CB941D259}" {
+     Name "TEST"
+     Description "TEW"
+    }
+    m_sIconBoneName "Table"
+    m_VariantData SCR_EditableEntityVariantData "{6668B15D60CC5811}" {
+    }
+    m_fMaxDrawDistance 2500
+   }
+   RplComponent "{6668B15C7E474B7B}" {
    }
   }
-  SCR_EditableDecalComponent "{6668B15E4057A29A}" {
-   Enabled 0
-   m_UIInfo SCR_ColorUIInfo "{6668B15CB941D259}" {
-    Name "TEST"
-    Description "TEW"
-   }
-   m_sIconBoneName "Table"
-   m_VariantData SCR_EditableEntityVariantData "{6668B15D60CC5811}" {
-   }
-   m_fMaxDrawDistance 2500
-  }
-  RplComponent "{6668B15C7E474B7B}" {
-  }
+  coords 1891.402 13.977 1831.881
  }
- coords 1891.402 13.977 1831.881
+ ATHENE_Marker2 {
+  components {
+   MeshObject "{6668B15E2BEA4EDC}" {
+    Enabled 0
+    Object "{2DC16E7C8417D588}Assets/Structures/Signs/Warnings/Sign_Square_A.xob"
+    BoundingBox AABBBoundingVolume "{6668B15E6167ED75}" {
+     Mins -0.251 -0.251 -0.04
+     Maxs 0.251 0.251 0.053
+    }
+   }
+   SCR_EditableDecalComponent "{6668B15E4057A29A}" {
+    Enabled 0
+    m_UIInfo SCR_ColorUIInfo "{6668B15CB941D259}" {
+     Name "TEST"
+     Description "TEW"
+    }
+    m_sIconBoneName "Table"
+    m_VariantData SCR_EditableEntityVariantData "{6668B15D60CC5811}" {
+    }
+    m_fMaxDrawDistance 2500
+   }
+   RplComponent "{6668B15C7E474B7B}" {
+   }
+  }
+  coords 1889.507 13.977 1831.881
+ }
 }
 GenericEntity Table : "{8EF9A7BC7B9C732E}Prefabs/Props/Industrial/BenchDrill_01_table.et" {
  coords 1891.628 12.572 1831.77
