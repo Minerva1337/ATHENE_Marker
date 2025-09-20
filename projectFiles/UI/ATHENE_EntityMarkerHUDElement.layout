@@ -11,6 +11,9 @@ FrameWidgetClass {
      Name "m_wIcon1"
      Slot LayoutSlot "{66690CD2BB2CE018}" {
      }
+     Texture "{E3433F6A334B444D}UI/Images/ATHENE_Signal_Icon_white.edds"
+     Size 32 32
+     Tiling None
     }
     TextWidgetClass "{66690CD7F47EE7FB}" {
      Name "m_wDistance1"
@@ -29,6 +32,9 @@ FrameWidgetClass {
      Name "m_wIcon2"
      Slot LayoutSlot "{66690CD2BB2CE018}" {
      }
+     Texture "{E3433F6A334B444D}UI/Images/ATHENE_Signal_Icon_white.edds"
+     Size 32 32
+     Tiling None
     }
     TextWidgetClass "{666930A9FC0132E1}" {
      Name "m_wDistance2"
