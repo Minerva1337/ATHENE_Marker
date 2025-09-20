@@ -1,0 +1,8 @@
+GameProject {
+ ID "ATHENEMarker"
+ GUID "6668B15FADF49785"
+ TITLE "ATHENE Marker"
+ Dependencies {
+  "58D0FB3206B6F859"
+ }
+}

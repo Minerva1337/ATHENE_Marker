@@ -1,0 +1,23 @@
+FrameWidgetClass {
+ Name "rootFrame"
+ {
+  VerticalLayoutWidgetClass "{66690CD7E08E111C}" {
+   Name "m_wMarkerRoot"
+   Slot FrameWidgetSlot "{66690CD7E08E11A0}" {
+   }
+   "Fill Origin" Center
+   {
+    ImageWidgetClass "{66690CD7EE29EFFC}" {
+     Name "m_wIcon"
+     Slot LayoutSlot "{66690CD2BB2CE018}" {
+     }
+    }
+    TextWidgetClass "{66690CD7F47EE7FB}" {
+     Name "m_wDistance"
+     Slot LayoutSlot "{66690CD7F47EE7DC}" {
+     }
+    }
+   }
+  }
+ }
+}
