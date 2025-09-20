@@ -1,18 +1,14 @@
 // ============================================================================
-// ATHENE_EntityMarkerHUD (2 Ziele) – Distanz-Scale & Fade
-// - Zeichnet Icon + Distanz für bis zu ZWEI Ziel-Entities
-// - Ziel 1/2 via Referenz ODER Name
-// - Größe über FrameSlot.SetSize() an Icon-Container (FrameWidget) gesteuert
-// - Alpha über ImageWidget.SetOpacity()
-// - Layout: Pro Item ein Root-Frame (m_wMarkerRootX) mit einem direkten
-//           Icon-Container-Frame (m_wIconContainerX), darin das Image (m_wIconX)
-//           + ein Distanz-Text (m_wDistanceX).
+// ATHENE_EntityMarkerHUD (2 Ziele) – Distanz-Scale & Fade (Icon + Text)
+// - Icon skaliert + faded
+// - Distanz-Label faded mit; optional wandert es unter das skaliert große Icon
+// - Für's Wandern muss das TextWidget im FrameWidgetSlot liegen
 // ============================================================================
 
 [BaseContainerProps()]
 class ATHENE_EntityMarkerHUD : SCR_InfoDisplayExtended
 {
-	// ----- Layout-IDs (2 Items im Layout) -----------------------------------
+	// ----- Layout-IDs (2 Items) ---------------------------------------------
 	protected const string WID_ROOT1          = "m_wMarkerRoot1";
 	protected const string WID_ICONCONT1      = "m_wIconContainer1";
 	protected const string WID_ICON1          = "m_wIcon1";
@@ -26,48 +22,51 @@ class ATHENE_EntityMarkerHUD : SCR_InfoDisplayExtended
 	// ----- Ziel 1 ------------------------------------------------------------
 	[Attribute("", UIWidgets.Object, category: "Target1", desc: "Direkte Referenz auf Ziel-Entity 1")]
 	IEntity m_TargetEntity1;
-
 	[Attribute("", UIWidgets.EditBox, category: "Target1", desc: "Name des Ziel-Entities 1 in der World (Editor-Name)")]
 	string m_TargetName1;
 
 	// ----- Ziel 2 ------------------------------------------------------------
 	[Attribute("", UIWidgets.Object, category: "Target2", desc: "Direkte Referenz auf Ziel-Entity 2")]
 	IEntity m_TargetEntity2;
-
 	[Attribute("", UIWidgets.EditBox, category: "Target2", desc: "Name des Ziel-Entities 2 in der World (Editor-Name)")]
 	string m_TargetName2;
 
 	// ----- UI / Performance --------------------------------------------------
 	[Attribute("50", UIWidgets.Slider, "0 200 1", category: "UI")]
 	int m_iIconHalfWidth;
-
 	[Attribute("50", UIWidgets.Slider, "0 200 1", category: "UI")]
 	int m_iIconHalfHeight;
-
 	[Attribute("5", UIWidgets.Slider, "1 30 1", category: "Perf")]
 	int m_iUpdateFrequency;
 
 	// ----- Distanz → Scale/Fade ---------------------------------------------
-	// Nähe/Ferne
-	[Attribute("5.0",  UIWidgets.EditBox, category: "FX", desc: "Distanz [m], ab der maximale Größe/Alpha anliegt")]
+	[Attribute("5.0",  UIWidgets.EditBox, category: "FX")]
 	float m_fNear;
-
-	[Attribute("500.0", UIWidgets.EditBox, category: "FX", desc: "Distanz [m], ab der minimale Größe/Alpha anliegt")]
+	[Attribute("500.0", UIWidgets.EditBox, category: "FX")]
 	float m_fFar;
 
-	// Skalen-Bereich
-	[Attribute("0.6", UIWidgets.EditBox, category: "FX", desc: "Min. Scale bei Ferne")]
+	[Attribute("0.6", UIWidgets.EditBox, category: "FX")]
 	float m_fMinScale;
-
-	[Attribute("1.4", UIWidgets.EditBox, category: "FX", desc: "Max. Scale bei Nähe")]
+	[Attribute("1.4", UIWidgets.EditBox, category: "FX")]
 	float m_fMaxScale;
 
-	// Alpha-Bereich
-	[Attribute("0.35", UIWidgets.EditBox, category: "FX", desc: "Min. Alpha bei Ferne")]
+	[Attribute("0.35", UIWidgets.EditBox, category: "FX")]
 	float m_fMinAlpha;
-
-	[Attribute("1.0", UIWidgets.EditBox, category: "FX", desc: "Max. Alpha bei Nähe")]
+	[Attribute("1.0", UIWidgets.EditBox, category: "FX")]
 	float m_fMaxAlpha;
+
+	// ----- Label-FX ----------------------------------------------------------
+	[Attribute("1", UIWidgets.CheckBox, category: "FX", desc: "Distanz-Label mit Alpha mitfaden")]
+	bool m_bFadeTextWithDistance;
+
+	[Attribute("0", UIWidgets.CheckBox, category: "FX", desc: "Distanz-Label unter Icon mitwandern lassen (erfordert FrameWidgetSlot)")]
+	bool m_bMoveDistanceLabel;
+
+	[Attribute("6", UIWidgets.Slider, "0 64 1", category: "FX", desc: "Y-Padding unter dem Icon (px @ scale=1)")]
+	int m_iTextPaddingY;
+
+	[Attribute("0.12", UIWidgets.EditBox, category: "FX", desc: "Alpha-Grenzwert, unter dem Label ausgeblendet wird")]
+	float m_fTextAlphaCutoff;
 
 	// ----- Runtime-Refs ------------------------------------------------------
 	protected WorkspaceWidget m_Workspace;
@@ -116,35 +115,29 @@ class ATHENE_EntityMarkerHUD : SCR_InfoDisplayExtended
 		m_wIcon2          = ImageWidget.Cast(m_wRoot.FindAnyWidget(WID_ICON2));
 		m_wDistance2      = TextWidget.Cast(m_wRoot.FindAnyWidget(WID_DISTANCE2));
 
-		// Targets initial auflösen
 		ResolveTarget1();
 		ResolveTarget2();
 
-		// HUD selbst sichtbar lassen, Items steuern ihre Sichtbarkeit
 		Show(true);
 		SetItemVisible(0, false);
 		SetItemVisible(1, false);
 
-		// Sanity: Defaultwerte, falls Far<=Near
 		if (m_fFar <= m_fNear) m_fFar = m_fNear + 0.01;
 	}
 
 	override void DisplayUpdate(IEntity owner, float timeSlice)
 	{
 		if (!m_Workspace || !m_World) return;
-
 		UpdateItemFX(owner, 0);
 		UpdateItemFX(owner, 1);
 	}
 
 	// ------------------------------------------------------------------------
-	// Pro-Item Update mit Distanz-abhängigem Scale/Fade
+	// Pro-Item Update (Icon + Text)
 	// ------------------------------------------------------------------------
 	protected void UpdateItemFX(IEntity owner, int idx)
 	{
 		IEntity target = GetTarget(idx);
-
-		// Falls Target noch nicht gesetzt → versuchen aufzulösen
 		if (!target)
 		{
 			ResolveTarget(idx);
@@ -163,11 +156,10 @@ class ATHENE_EntityMarkerHUD : SCR_InfoDisplayExtended
 		SetItemVisible(idx, onScreen);
 		if (!onScreen) return;
 
-		// Distanz → Scale/Alpha berechnen
 		float scale, alpha;
 		ComputeScaleAndAlphaFromDistance(owner.GetOrigin(), worldPos, scale, alpha);
 
-		// Marker-Root zentriert mit skaliertem Offet positionieren
+		// Root so positionieren, dass Icon zentriert bleibt
 		float halfW = (float)m_iIconHalfWidth  * scale;
 		float halfH = (float)m_iIconHalfHeight * scale;
 
@@ -179,10 +171,14 @@ class ATHENE_EntityMarkerHUD : SCR_InfoDisplayExtended
 			FrameSlot.SetPos(root, px, py);
 		}
 
-		// Icon-Containergröße + Icon-Opacity anwenden
-		ApplyIconFX(idx, scale, alpha);
+		// Icon-FX + Text-FX
+		float iconW = (float)m_iIconHalfWidth  * 2.0 * scale;
+		float iconH = (float)m_iIconHalfHeight * 2.0 * scale;
 
-		// Distanz-Label throttlen
+		ApplyIconFX(idx, scale, alpha);
+		ApplyTextFX(idx, alpha, iconH);
+
+		// Distanz-Label (Inhalt) throttlen
 		m_iFrameCounter++;
 		if (m_iFrameCounter >= m_iUpdateFrequency)
 		{
@@ -197,13 +193,10 @@ class ATHENE_EntityMarkerHUD : SCR_InfoDisplayExtended
 	protected void ComputeScaleAndAlphaFromDistance(vector p, vector t, out float scale, out float alpha)
 	{
 		float d = vector.Distance(p, t);
-
-		// 0..1, geklemmt
 		float f = (d - m_fNear) / (m_fFar - m_fNear);
 		if (f < 0.0) f = 0.0;
 		if (f > 1.0) f = 1.0;
 
-		// Nähe: f=0 -> Max; Ferne: f=1 -> Min
 		scale = Lerp(m_fMaxScale, m_fMinScale, f);
 		alpha = Lerp(m_fMaxAlpha, m_fMinAlpha, f);
 	}
@@ -214,7 +207,7 @@ class ATHENE_EntityMarkerHUD : SCR_InfoDisplayExtended
 	}
 
 	// ------------------------------------------------------------------------
-	// FX anwenden (größe via Container, alpha via Image)
+	// Icon-FX (Größe via Container, Alpha via Image)
 	// ------------------------------------------------------------------------
 	protected void ApplyIconFX(int idx, float scale, float alpha)
 	{
@@ -232,11 +225,9 @@ class ATHENE_EntityMarkerHUD : SCR_InfoDisplayExtended
 			iconCont = m_wIconContainer2;
 		}
 
-		// Fade/Alpha am eigentlichen Bild
 		if (icon)
 			icon.SetOpacity(alpha);
 
-		// Größe über FrameSlot am Container steuern (Parent = FrameWidget!)
 		float w = (float)m_iIconHalfWidth  * 2.0 * scale;
 		float h = (float)m_iIconHalfHeight * 2.0 * scale;
 
@@ -244,14 +235,52 @@ class ATHENE_EntityMarkerHUD : SCR_InfoDisplayExtended
 			FrameSlot.SetSize(iconCont, w, h);
 		else
 		{
-			// Fallback: Root skalieren, falls Container fehlt
 			Widget root = GetItemRoot(idx);
 			if (root) FrameSlot.SetSize(root, w, h);
 		}
 	}
 
 	// ------------------------------------------------------------------------
-	// Targets auflösen (spezifisch & generisch)
+	// Text-FX (Opacity + optional: Y-Offset unter Icon)
+	// ------------------------------------------------------------------------
+	protected void ApplyTextFX(int idx, float alpha, float iconHeight)
+	{
+		TextWidget tw;
+		if (idx == 0) tw = m_wDistance1;
+		else          tw = m_wDistance2;
+		if (!tw) return;
+
+		// Fade
+		if (m_bFadeTextWithDistance)
+			tw.SetOpacity(alpha);
+		else
+			tw.SetOpacity(1.0);
+
+		// Hide bei sehr kleiner Alpha (optional)
+		if (alpha < m_fTextAlphaCutoff)
+		{
+			tw.SetVisible(false);
+			tw.SetEnabled(false);
+		}
+		else
+		{
+			tw.SetVisible(true);
+			tw.SetEnabled(true);
+		}
+
+		// Optional: Label unter das (skaliert) große Icon verschieben
+		if (m_bMoveDistanceLabel)
+		{
+			// Position relativ zum Item-Root (0, iconHeight + padding)
+			// Hinweis: funktioniert nur, wenn das TextWidget im FrameWidgetSlot liegt
+			float x = 0.0; // linksbündig; Layout kann im .layout auf Center gestellt werden
+			float y = iconHeight + (float)m_iTextPaddingY;
+			FrameSlot.SetPos(tw, x, y);
+		}
+	}
+
+	// ------------------------------------------------------------------------
+	// Targets
 	// ------------------------------------------------------------------------
 	protected void ResolveTarget1()
 	{
@@ -296,7 +325,7 @@ class ATHENE_EntityMarkerHUD : SCR_InfoDisplayExtended
 	}
 
 	// ------------------------------------------------------------------------
-	// Helpers: UI pro Item
+	// UI Helpers
 	// ------------------------------------------------------------------------
 	protected Widget GetItemRoot(int idx)
 	{
