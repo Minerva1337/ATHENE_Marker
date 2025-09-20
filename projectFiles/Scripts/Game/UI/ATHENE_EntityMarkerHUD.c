@@ -1,22 +1,27 @@
 // ============================================================================
-// ATHENE_EntityMarkerHUD (2 Ziele)
+// ATHENE_EntityMarkerHUD (2 Ziele) – Distanz-Scale & Fade
 // - Zeichnet Icon + Distanz für bis zu ZWEI Ziel-Entities
 // - Ziel 1/2 via Referenz ODER Name
-// - Kein Ternary, klare if/else-Zweiglogik
-// - Erfordert in deinem Layout zwei Item-Blöcke (ROOT1/ROOT2 ...)
+// - Größe über FrameSlot.SetSize() an Icon-Container (FrameWidget) gesteuert
+// - Alpha über ImageWidget.SetOpacity()
+// - Layout: Pro Item ein Root-Frame (m_wMarkerRootX) mit einem direkten
+//           Icon-Container-Frame (m_wIconContainerX), darin das Image (m_wIconX)
+//           + ein Distanz-Text (m_wDistanceX).
 // ============================================================================
 
 [BaseContainerProps()]
 class ATHENE_EntityMarkerHUD : SCR_InfoDisplayExtended
 {
 	// ----- Layout-IDs (2 Items im Layout) -----------------------------------
-	protected const string WID_ROOT1     = "m_wMarkerRoot1";
-	protected const string WID_ICON1     = "m_wIcon1";
-	protected const string WID_DISTANCE1 = "m_wDistance1";
+	protected const string WID_ROOT1          = "m_wMarkerRoot1";
+	protected const string WID_ICONCONT1      = "m_wIconContainer1";
+	protected const string WID_ICON1          = "m_wIcon1";
+	protected const string WID_DISTANCE1      = "m_wDistance1";
 
-	protected const string WID_ROOT2     = "m_wMarkerRoot2";
-	protected const string WID_ICON2     = "m_wIcon2";
-	protected const string WID_DISTANCE2 = "m_wDistance2";
+	protected const string WID_ROOT2          = "m_wMarkerRoot2";
+	protected const string WID_ICONCONT2      = "m_wIconContainer2";
+	protected const string WID_ICON2          = "m_wIcon2";
+	protected const string WID_DISTANCE2      = "m_wDistance2";
 
 	// ----- Ziel 1 ------------------------------------------------------------
 	[Attribute("", UIWidgets.Object, category: "Target1", desc: "Direkte Referenz auf Ziel-Entity 1")]
@@ -42,17 +47,43 @@ class ATHENE_EntityMarkerHUD : SCR_InfoDisplayExtended
 	[Attribute("5", UIWidgets.Slider, "1 30 1", category: "Perf")]
 	int m_iUpdateFrequency;
 
+	// ----- Distanz → Scale/Fade ---------------------------------------------
+	// Nähe/Ferne
+	[Attribute("5.0",  UIWidgets.EditBox, category: "FX", desc: "Distanz [m], ab der maximale Größe/Alpha anliegt")]
+	float m_fNear;
+
+	[Attribute("500.0", UIWidgets.EditBox, category: "FX", desc: "Distanz [m], ab der minimale Größe/Alpha anliegt")]
+	float m_fFar;
+
+	// Skalen-Bereich
+	[Attribute("0.6", UIWidgets.EditBox, category: "FX", desc: "Min. Scale bei Ferne")]
+	float m_fMinScale;
+
+	[Attribute("1.4", UIWidgets.EditBox, category: "FX", desc: "Max. Scale bei Nähe")]
+	float m_fMaxScale;
+
+	// Alpha-Bereich
+	[Attribute("0.35", UIWidgets.EditBox, category: "FX", desc: "Min. Alpha bei Ferne")]
+	float m_fMinAlpha;
+
+	[Attribute("1.0", UIWidgets.EditBox, category: "FX", desc: "Max. Alpha bei Nähe")]
+	float m_fMaxAlpha;
+
 	// ----- Runtime-Refs ------------------------------------------------------
 	protected WorkspaceWidget m_Workspace;
 	protected BaseWorld m_World;
 
-	protected Widget m_wMarkerRoot1;
+	// Item 1
+	protected Widget      m_wMarkerRoot1;
+	protected Widget      m_wIconContainer1;
 	protected ImageWidget m_wIcon1;
-	protected TextWidget m_wDistance1;
+	protected TextWidget  m_wDistance1;
 
-	protected Widget m_wMarkerRoot2;
+	// Item 2
+	protected Widget      m_wMarkerRoot2;
+	protected Widget      m_wIconContainer2;
 	protected ImageWidget m_wIcon2;
-	protected TextWidget m_wDistance2;
+	protected TextWidget  m_wDistance2;
 
 	protected IEntity m_pTarget1;
 	protected IEntity m_pTarget2;
@@ -74,91 +105,42 @@ class ATHENE_EntityMarkerHUD : SCR_InfoDisplayExtended
 		m_World     = GetGame().GetWorld();
 
 		// Subwidgets binden (Item 1)
-		m_wMarkerRoot1 = m_wRoot.FindWidget(WID_ROOT1);
-		m_wIcon1       = ImageWidget.Cast(m_wRoot.FindAnyWidget(WID_ICON1));
-		m_wDistance1   = TextWidget.Cast(m_wRoot.FindAnyWidget(WID_DISTANCE1));
+		m_wMarkerRoot1    = m_wRoot.FindWidget(WID_ROOT1);
+		m_wIconContainer1 = m_wRoot.FindAnyWidget(WID_ICONCONT1);
+		m_wIcon1          = ImageWidget.Cast(m_wRoot.FindAnyWidget(WID_ICON1));
+		m_wDistance1      = TextWidget.Cast(m_wRoot.FindAnyWidget(WID_DISTANCE1));
 
 		// Subwidgets binden (Item 2)
-		m_wMarkerRoot2 = m_wRoot.FindWidget(WID_ROOT2);
-		m_wIcon2       = ImageWidget.Cast(m_wRoot.FindAnyWidget(WID_ICON2));
-		m_wDistance2   = TextWidget.Cast(m_wRoot.FindAnyWidget(WID_DISTANCE2));
+		m_wMarkerRoot2    = m_wRoot.FindWidget(WID_ROOT2);
+		m_wIconContainer2 = m_wRoot.FindAnyWidget(WID_ICONCONT2);
+		m_wIcon2          = ImageWidget.Cast(m_wRoot.FindAnyWidget(WID_ICON2));
+		m_wDistance2      = TextWidget.Cast(m_wRoot.FindAnyWidget(WID_DISTANCE2));
 
-	    ResolveTarget1();
-	    ResolveTarget2();
-	
-	    // HUD immer aktiv lassen – Items regeln ihre Sichtbarkeit selbst
-	    Show(true);
-	    SetItemVisible(0, false);
-	    SetItemVisible(1, false);
+		// Targets initial auflösen
+		ResolveTarget1();
+		ResolveTarget2();
+
+		// HUD selbst sichtbar lassen, Items steuern ihre Sichtbarkeit
+		Show(true);
+		SetItemVisible(0, false);
+		SetItemVisible(1, false);
+
+		// Sanity: Defaultwerte, falls Far<=Near
+		if (m_fFar <= m_fNear) m_fFar = m_fNear + 0.01;
 	}
 
-	
 	override void DisplayUpdate(IEntity owner, float timeSlice)
 	{
-	    if (!m_Workspace || !m_World) return;
-	
-	    // --- ITEM 0 ---
-	    IEntity t0 = m_pTarget1;
-	    if (!t0) { ResolveTarget1(); t0 = m_pTarget1; }
-	    if (t0)
-	    {
-	        vector wp0 = t0.GetOrigin();
-	        vector sp0 = m_Workspace.ProjWorldToScreen(wp0, m_World);
-	        bool on0 = (sp0[2] > 0);
-	        SetItemVisible(0, on0);
-	        if (on0)
-	        {
-	            FrameSlot.SetPos(m_wMarkerRoot1, sp0[0]-m_iIconHalfWidth, sp0[1]-m_iIconHalfHeight);
-	            ThrottledUpdateDistance(0, owner.GetOrigin(), wp0);
-	        }
-	    }
-	    else SetItemVisible(0, false);
-	
-	    // --- ITEM 1 ---
-	    IEntity t1 = m_pTarget2;
-	    if (!t1) { ResolveTarget2(); t1 = m_pTarget2; }
-	    if (t1)
-	    {
-	        vector wp1 = t1.GetOrigin();
-	        vector sp1 = m_Workspace.ProjWorldToScreen(wp1, m_World);
-	        bool on1 = (sp1[2] > 0);
-	        SetItemVisible(1, on1);
-	        if (on1)
-	        {
-	            FrameSlot.SetPos(m_wMarkerRoot2, sp1[0]-m_iIconHalfWidth, sp1[1]-m_iIconHalfHeight);
-	            ThrottledUpdateDistance(1, owner.GetOrigin(), wp1);
-	        }
-	    }
-	    else SetItemVisible(1, false);
-	}
-	
-	// getrennte Distanz-Labels nutzen
-	protected void ThrottledUpdateDistance(int idx, vector p, vector t)
-	{
-	    m_iFrameCounter++;
-	    if (m_iFrameCounter < m_iUpdateFrequency) return;
-	    m_iFrameCounter = 0;
-	
-	    TextWidget dist;
-		if (idx == 0)
-		    dist = m_wDistance1;
-		else
-		    dist = m_wDistance2;
-	    if (!dist) return;
-	
-	    float d = vector.Distance(p, t);
-	    if (d < 1000.0) dist.SetText(string.Format("%1 m", Math.Round(d)));
-	    else dist.SetText(string.Format("%1 km", Math.Round((d/1000.0) * 10.0) / 10.0));
+		if (!m_Workspace || !m_World) return;
+
+		UpdateItemFX(owner, 0);
+		UpdateItemFX(owner, 1);
 	}
 
 	// ------------------------------------------------------------------------
-	// Per-Item Update
+	// Pro-Item Update mit Distanz-abhängigem Scale/Fade
 	// ------------------------------------------------------------------------
-	
-	// Hilfsmethoden pro Item
-	
-	
-	protected void UpdateItem(IEntity owner, int idx)
+	protected void UpdateItemFX(IEntity owner, int idx)
 	{
 		IEntity target = GetTarget(idx);
 
@@ -166,13 +148,7 @@ class ATHENE_EntityMarkerHUD : SCR_InfoDisplayExtended
 		if (!target)
 		{
 			ResolveTarget(idx);
-
-			// Nochmal holen (ohne TERNARY!)
-			if (idx == 0)
-				target = m_pTarget1;
-			else
-				target = m_pTarget2;
-
+			target = GetTarget(idx);
 			if (!target)
 			{
 				SetItemVisible(idx, false);
@@ -187,11 +163,26 @@ class ATHENE_EntityMarkerHUD : SCR_InfoDisplayExtended
 		SetItemVisible(idx, onScreen);
 		if (!onScreen) return;
 
-		float x = screen[0] - m_iIconHalfWidth;
-		float y = screen[1] - m_iIconHalfHeight;
-		FrameSlot.SetPos(GetItemRoot(idx), x, y);
+		// Distanz → Scale/Alpha berechnen
+		float scale, alpha;
+		ComputeScaleAndAlphaFromDistance(owner.GetOrigin(), worldPos, scale, alpha);
 
-		// Distanz throttlen
+		// Marker-Root zentriert mit skaliertem Offet positionieren
+		float halfW = (float)m_iIconHalfWidth  * scale;
+		float halfH = (float)m_iIconHalfHeight * scale;
+
+		Widget root = GetItemRoot(idx);
+		if (root)
+		{
+			float px = screen[0] - halfW;
+			float py = screen[1] - halfH;
+			FrameSlot.SetPos(root, px, py);
+		}
+
+		// Icon-Containergröße + Icon-Opacity anwenden
+		ApplyIconFX(idx, scale, alpha);
+
+		// Distanz-Label throttlen
 		m_iFrameCounter++;
 		if (m_iFrameCounter >= m_iUpdateFrequency)
 		{
@@ -199,79 +190,109 @@ class ATHENE_EntityMarkerHUD : SCR_InfoDisplayExtended
 			UpdateDistance(idx, owner.GetOrigin(), worldPos);
 		}
 	}
-	
-	
-	// je ein Resolver pro Ziel (nicht die globale SetVisible() nutzen)
-	protected void ResolveTarget1()
+
+	// ------------------------------------------------------------------------
+	// Distanz → Scale/Alpha
+	// ------------------------------------------------------------------------
+	protected void ComputeScaleAndAlphaFromDistance(vector p, vector t, out float scale, out float alpha)
 	{
-	    if (m_TargetEntity1) { m_pTarget1 = m_TargetEntity1; return; }
-	    if (!m_TargetName1.IsEmpty())
-	    {
-	        m_pTarget1 = GetGame().GetWorld().FindEntityByName(m_TargetName1);
-	        if (!m_pTarget1) Print(string.Format("[HUD] Target1 '%1' not found", m_TargetName1), LogLevel.WARNING);
-	    }
+		float d = vector.Distance(p, t);
+
+		// 0..1, geklemmt
+		float f = (d - m_fNear) / (m_fFar - m_fNear);
+		if (f < 0.0) f = 0.0;
+		if (f > 1.0) f = 1.0;
+
+		// Nähe: f=0 -> Max; Ferne: f=1 -> Min
+		scale = Lerp(m_fMaxScale, m_fMinScale, f);
+		alpha = Lerp(m_fMaxAlpha, m_fMinAlpha, f);
 	}
-	
-	protected void ResolveTarget2()
+
+	protected float Lerp(float a, float b, float t)
 	{
-	    if (m_TargetEntity2) { m_pTarget2 = m_TargetEntity2; return; }
-	    if (!m_TargetName2.IsEmpty())
-	    {
-	        m_pTarget2 = GetGame().GetWorld().FindEntityByName(m_TargetName2);
-	        if (!m_pTarget2) Print(string.Format("[HUD] Target2 '%1' not found", m_TargetName2), LogLevel.WARNING);
-	    }
+		return a + (b - a) * t;
 	}
 
 	// ------------------------------------------------------------------------
-	// Helpers: Targets
+	// FX anwenden (größe via Container, alpha via Image)
 	// ------------------------------------------------------------------------
-	protected IEntity GetTarget(int idx)
+	protected void ApplyIconFX(int idx, float scale, float alpha)
 	{
-		if (idx == 0) return m_pTarget1;
-		return m_pTarget2;
+		ImageWidget icon;
+		Widget iconCont;
+
+		if (idx == 0)
+		{
+			icon     = m_wIcon1;
+			iconCont = m_wIconContainer1;
+		}
+		else
+		{
+			icon     = m_wIcon2;
+			iconCont = m_wIconContainer2;
+		}
+
+		// Fade/Alpha am eigentlichen Bild
+		if (icon)
+			icon.SetOpacity(alpha);
+
+		// Größe über FrameSlot am Container steuern (Parent = FrameWidget!)
+		float w = (float)m_iIconHalfWidth  * 2.0 * scale;
+		float h = (float)m_iIconHalfHeight * 2.0 * scale;
+
+		if (iconCont)
+			FrameSlot.SetSize(iconCont, w, h);
+		else
+		{
+			// Fallback: Root skalieren, falls Container fehlt
+			Widget root = GetItemRoot(idx);
+			if (root) FrameSlot.SetSize(root, w, h);
+		}
+	}
+
+	// ------------------------------------------------------------------------
+	// Targets auflösen (spezifisch & generisch)
+	// ------------------------------------------------------------------------
+	protected void ResolveTarget1()
+	{
+		if (m_TargetEntity1)
+		{
+			m_pTarget1 = m_TargetEntity1;
+			return;
+		}
+		if (!m_TargetName1.IsEmpty())
+		{
+			m_pTarget1 = GetGame().GetWorld().FindEntityByName(m_TargetName1);
+			if (!m_pTarget1)
+				Print(string.Format("[ATHENE_EntityMarkerHUD] Target1 '%1' nicht gefunden", m_TargetName1), LogLevel.WARNING);
+		}
+	}
+
+	protected void ResolveTarget2()
+	{
+		if (m_TargetEntity2)
+		{
+			m_pTarget2 = m_TargetEntity2;
+			return;
+		}
+		if (!m_TargetName2.IsEmpty())
+		{
+			m_pTarget2 = GetGame().GetWorld().FindEntityByName(m_TargetName2);
+			if (!m_pTarget2)
+				Print(string.Format("[ATHENE_EntityMarkerHUD] Target2 '%1' nicht gefunden", m_TargetName2), LogLevel.WARNING);
+		}
 	}
 
 	protected void ResolveTarget(int idx)
 	{
-		if (idx == 0)
-		{
-			// 1) direkte Referenz
-			if (m_TargetEntity1)
-			{
-				m_pTarget1 = m_TargetEntity1;
-				return;
-			}
-			// 2) Namenssuche
-			if (!m_TargetName1.IsEmpty())
-			{
-				m_pTarget1 = GetGame().GetWorld().FindEntityByName(m_TargetName1);
-				if (!m_pTarget1)
-					Print(string.Format("[ATHENE_EntityMarkerHUD] Entity1 '%1' nicht gefunden", m_TargetName1), LogLevel.WARNING);
-			}
-			else
-			{
-				// nichts gesetzt
-			}
-		}
-		else
-		{
-			if (m_TargetEntity2)
-			{
-				m_pTarget2 = m_TargetEntity2;
-				return;
-			}
+		if (idx == 0) { ResolveTarget1(); return; }
+		ResolveTarget2();
+	}
 
-			if (!m_TargetName2.IsEmpty())
-			{
-				m_pTarget2 = GetGame().GetWorld().FindEntityByName(m_TargetName2);
-				if (!m_pTarget2)
-					Print(string.Format("[ATHENE_EntityMarkerHUD] Entity2 '%1' nicht gefunden", m_TargetName2), LogLevel.WARNING);
-			}
-			else
-			{
-				// nichts gesetzt 
-			}
-		}
+	protected IEntity GetTarget(int idx)
+	{
+		if (idx == 0) return m_pTarget1;
+		return m_pTarget2;
 	}
 
 	// ------------------------------------------------------------------------
@@ -291,15 +312,13 @@ class ATHENE_EntityMarkerHUD : SCR_InfoDisplayExtended
 
 	protected void SetItemVisible(int idx, bool show)
 	{
-	    Widget root;
-		if (idx == 0)
-		    root = m_wMarkerRoot1;
-		else
-		    root = m_wMarkerRoot2;
-		
-	    if (!root) return;
-	    root.SetEnabled(show);
-	    root.SetVisible(show);
+		Widget root;
+		if (idx == 0) root = m_wMarkerRoot1;
+		else          root = m_wMarkerRoot2;
+
+		if (!root) return;
+		root.SetEnabled(show);
+		root.SetVisible(show);
 	}
 
 	protected void UpdateDistance(int idx, vector playerOrigin, vector targetOrigin)
