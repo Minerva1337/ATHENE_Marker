@@ -269,7 +269,7 @@ class ATHENE_EntityMarkerHUD : SCR_InfoDisplayExtended
 			}
 			else
 			{
-				// nichts gesetzt
+				// nichts gesetzt 
 			}
 		}
 	}
