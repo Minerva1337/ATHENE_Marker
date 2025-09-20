@@ -7,8 +7,7 @@ SCR_ChimeraCharacter {
     }
     ATHENE_EntityMarkerHUD "{66690CDEF310919D}" {
      m_LayoutPath "{81E72103CCF2E5DE}UI/ATHENE_EntityMarkerHUDElement.layout"
-     m_TargetName1 "ATHENE_Marker1"
-     m_TargetName2 "ATHENE_Marker2"
+     m_TargetName "ATHENE_Marker1"
     }
    }
   }
