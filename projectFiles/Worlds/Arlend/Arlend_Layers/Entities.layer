@@ -23,7 +23,10 @@ $grp GenericEntity {
    RplComponent "{6668B15C7E474B7B}" {
    }
   }
-  coords 1891.402 13.977 1831.881
+  coords 2969.104 62.459 1875.741
+  angleX 2.673
+  angleY -0.338
+  angleZ -1.804
  }
  ATHENE_Marker2 {
   components {
@@ -49,9 +52,15 @@ $grp GenericEntity {
    RplComponent "{6668B15C7E474B7B}" {
    }
   }
-  coords 1889.507 13.977 1831.881
+  coords 2967.21 62.409 1875.741
+  angleX 3.574
+  angleY -0.169
+  angleZ -0.904
  }
 }
 GenericEntity Table : "{8EF9A7BC7B9C732E}Prefabs/Props/Industrial/BenchDrill_01_table.et" {
- coords 1891.628 12.572 1831.77
+ coords 2969.333 62.461 1875.63
+ angleX 2.673
+ angleY -0.338
+ angleZ -1.804
 }
