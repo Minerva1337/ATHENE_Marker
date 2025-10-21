@@ -9,8 +9,16 @@ SCR_ChimeraCharacter {
      m_LayoutPath "{81E72103CCF2E5DE}UI/ATHENE_EntityMarkerHUDElement.layout"
      m_TargetName1 "ATHENE_Marker1"
      m_TargetName2 "ATHENE_Marker2"
+     m_fNear 200
+     m_fFar 2000
+     m_fMinScale 0
+     m_fMaxScale 1
+     m_fMinAlpha 0
     }
    }
+  }
+  SCR_CharacterDamageManagerComponent "{55872AD7B4E959F2}" {
+   m_fUnconsciousRegenerationScale 0
   }
  }
 }

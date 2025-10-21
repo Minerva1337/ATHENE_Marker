@@ -1,45 +1,84 @@
 FrameWidgetClass {
  Name "rootFrame"
  {
-  VerticalLayoutWidgetClass "{66690CD7E08E111C}" {
+  FrameWidgetClass "{66690CD7E08E111C}" {
    Name "m_wMarkerRoot1"
    Slot FrameWidgetSlot "{66690CD7E08E11A0}" {
+    PositionX 0
+    OffsetLeft 0
+    PositionY 0
+    OffsetTop 0
+    SizeX 32
+    OffsetRight -32
+    SizeY 32
+    OffsetBottom -32
    }
-   "Fill Origin" Center
    {
     ImageWidgetClass "{66690CD7EE29EFFC}" {
      Name "m_wIcon1"
-     Slot LayoutSlot "{66690CD2BB2CE018}" {
+     Slot FrameWidgetSlot "{668EC4108890CE5D}" {
+      OffsetLeft 0
+      OffsetTop 0
+      SizeX 16
+      OffsetRight -16
+      SizeY 16
+      OffsetBottom -16
      }
-     Texture "{E3433F6A334B444D}UI/Images/ATHENE_Signal_Icon_white.edds"
-     Size 32 32
-     Tiling None
+     Texture "{E7E7E34C682A773A}UI/Images/ATHENE_A_Icon.edds"
+     Size 16 16
     }
     TextWidgetClass "{66690CD7F47EE7FB}" {
      Name "m_wDistance1"
-     Slot LayoutSlot "{66690CD7F47EE7DC}" {
+     Slot FrameWidgetSlot "{668EC4108890CEAC}" {
+      PositionX 0
+      OffsetLeft 0
+      PositionY 15
+      OffsetTop 15
+      SizeX 100
+      OffsetRight -100
+      SizeY 30
+      OffsetBottom -45
      }
+     "Font Size" 12
+     "Min Font Size" 12
     }
    }
   }
-  VerticalLayoutWidgetClass "{666930A9FC0132EC}" {
+  FrameWidgetClass "{666930A9FC0132EC}" {
    Name "m_wMarkerRoot2"
    Slot FrameWidgetSlot "{66690CD7E08E11A0}" {
+    OffsetLeft 0
+    OffsetTop 0
+    SizeX 32
+    OffsetRight -32
+    SizeY 32
+    OffsetBottom -32
    }
-   "Fill Origin" Center
    {
     ImageWidgetClass "{666930A9FC0132EF}" {
      Name "m_wIcon2"
-     Slot LayoutSlot "{66690CD2BB2CE018}" {
+     Slot FrameWidgetSlot "{668EC41094B59AFD}" {
+      OffsetLeft 0
+      OffsetTop 0
+      SizeX 16
+      OffsetRight -16
+      SizeY 16
+      OffsetBottom -16
      }
-     Texture "{E3433F6A334B444D}UI/Images/ATHENE_Signal_Icon_white.edds"
-     Size 32 32
-     Tiling None
+     Texture "{CDC3C4EF9EC41115}UI/Images/ATHENE_B_Icon.edds"
+     Size 16 16
     }
     TextWidgetClass "{666930A9FC0132E1}" {
      Name "m_wDistance2"
-     Slot LayoutSlot "{66690CD7F47EE7DC}" {
+     Slot FrameWidgetSlot "{668EC41094B59ACE}" {
+      OffsetLeft 0
+      PositionY 15
+      OffsetTop 15
+      OffsetRight -100
+      OffsetBottom -45
      }
+     "Font Size" 12
+     "Min Font Size" 12
     }
    }
   }
